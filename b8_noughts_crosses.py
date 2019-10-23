@@ -88,20 +88,14 @@ def ai_random_move():
 
     # Select a random move that is legal.
     sel = legalmoveindices[random.randrange(0, len(legalmoveindices))]
-    
-    # Prevent divison by zero from the modulo.
-    if sel == 0:
-        return [0, 0]
 
     # Convert the 1D value to 2D position using some wizard-like sorcery.
-    grid_val_size = GRID_WIDTH * GRID_HEIGHT
-    column = grid_val_size % sel
-    row = int(round((grid_val_size - column) / GRID_HEIGHT))
-
-    print("sel: ", sel, "row: ", row, " col:", column)
+    column = sel % GRID_WIDTH
+    row = int(round((sel - column) / GRID_HEIGHT))
+    #print("sel:", sel, "column:", column, "row:", row)
 
     # Return list constructed from the position.
-    return [column, row - 1]
+    return [column, row]
 
 # Make the move of the passed ID.
 # Checks for pre-occupation must be done PRIOR 
@@ -169,6 +163,7 @@ def main_func():
     score_player = 0
     score_ai = 0
     round_counter = 0
+    tie_count = 0
 
     # Loop over infinite number of rounds. User is asked at
     # end of round whether they want to continue or exit.
@@ -206,8 +201,19 @@ def main_func():
                 print("You lose.")
                 score_ai += 1
                 break
+            # Check for tie
+            empties = 0
+            for i in grid_vals:
+                if i == ID_EMPTY:
+                    empties += 1
+                    break
+            if empties == 0:
+                print("You tied with the computer.")
+                tie_count += 1
+                break;
 
-        print("Score:\n  You:", score_player, "\n  Computer:", score_ai)
+        tie_str = "\n  Ties: " + str(tie_count) if tie_count > 0 else "" 
+        print("Scores:\n  You:", score_player, "\n  Computer:", score_ai, tie_str)
         s = "Type 'p' to play again, 'x' to exit.\n"
         while True:
             exitcode = input(s)[0]
