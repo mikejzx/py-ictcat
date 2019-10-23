@@ -202,12 +202,7 @@ def main_func():
                 score_ai += 1
                 break
             # Check for tie
-            empties = 0
-            for i in grid_vals:
-                if i == ID_EMPTY:
-                    empties += 1
-                    break
-            if empties == 0:
+            if not ID_EMPTY in grid_vals:
                 print("You tied with the computer.")
                 tie_count += 1
                 break;
