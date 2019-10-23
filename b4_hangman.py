@@ -2,9 +2,20 @@
 # ICT CAT Term 4, 2019
 # Category B - Problem 4: Hangman
 # https://github.com/mikejzx/py-ictcat
+#
+# -- -- -- -- -- -- -- -- -- -- -- -- --
+# This is a simple Hangman game designed
+# for use in the terminal. The user
+# can input either a letter, or guess
+# an the entire word.
+# The word given is (by default) retrieved
+# from an online word list. Alternatively,
+# the user can pass in a custom word list
+# as the first command-line argument.
+#
 # -- -- -- -- -- -- -- -- -- -- -- -- --
 # This specific program uses a word list
-#     from the following GitHub repository:
+#    from the following GitHub repository:
 # https://github.com/first20hours/google-10000-english/blob/master/
 # And this specific file:
 # https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt
