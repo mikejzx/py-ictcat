@@ -1,23 +1,14 @@
 # -- -- -- -- -- -- -- -- -- -- -- -- --
 # ICT CAT Term 4, 2019
 # Category B - Problem 4: Hangman
+# https://github.com/mikejzx/py-ictcat
 # -- -- -- -- -- -- -- -- -- -- -- -- --
-# This program uses a word list from 
-#   the following GitHub repository:
+# This specific program uses a word list
+#     from the following GitHub repository:
 # https://github.com/first20hours/google-10000-english/blob/master/
 # And this specific file:
 # https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt
 # -- -- -- -- -- -- -- -- -- -- -- -- --
-
-'''
-    TODO LIST:
-    0.) Downloadable word list.
-    1.) Allow user to pass a custom word list as an argument.
-        (both local and on the internet)
-    2.) Cache downloaded word lists to the disk to prevent 
-        wasting unneeded bandwidth.
-    2.b) Gzip or LZ compress the cached file. 
-'''
 
 # Imports
 import sys    # For command-line arguments vector. (sys.argv)
@@ -29,6 +20,9 @@ wordlist_local    = False # Flag of whether the user passed a custom word list.
 wordlist_file_url = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt"
 wordlist_data     = []
 word_selected     = ""
+
+# Constants
+HEALTH_DECREMENT  = 100.0 / 8.0 # We allow 8 mistakes.
 
 # Downloads the word list.
 # * wordlist_dl_url -> A string containing the URL of the wordlist file.
@@ -64,7 +58,7 @@ def word_rand_select():
             continue
             
         # Else just return our word.
-        return w
+        return w.lower()
 
 # The main method. This is called once when the program is executed.
 # * args -> The command-line arguments passed into the program 
@@ -109,11 +103,21 @@ def main_func(args):
         # If it does then the user still has letters to find so we keep running.
         lost = False
         while "_" in word_totalguessed:
-            print("  Letters known:", "".join(word_totalguessed))
-            print("  Doesn't contain: " + ", ".join(word_excludes))
+            print("  [Found] :", "".join(word_totalguessed))
+            if len(word_excludes) > 0:
+                print("  [Doesn't contain]: " + ", ".join(word_excludes))
+            print("  [Health]:", health)
 
             # Get the user's input.
-            char_guessed = str(input())[0]
+            inp_string = str(input())
+            while len(inp_string) < 1:
+                inp_string = str(input("Enter a letter.\n"))
+            # Check if user guessed entire word correctly.
+            if inp_string == word_totalguessed:
+                lost = False
+                break;
+            # We will just use the first char.
+            char_guessed = inp_string.lower()[0]
 
             # Whether the letter is in the word.
             ltr_in_word = char_guessed in word_selected  
@@ -129,7 +133,15 @@ def main_func(args):
                     # Set the guessed string at this index to this letter.
                     word_totalguessed[ltr_idx] = char_guessed
             else:
-                word_excludes.append(char_guessed)
+                # Add to known letters that aren't in the word.
+                if not char_guessed in word_excludes:
+                    word_excludes.append(char_guessed)
+                
+                # Decrement health.
+                health -= HEALTH_DECREMENT
+                if health <= 0:
+                    lost = True
+                    break
         if not lost:
             print("Congratulations, you guessed all letters of the word '" + word_selected + "' with ", health, "% health remaining.")
         else:
@@ -138,7 +150,7 @@ def main_func(args):
         # Ask user what to do next.
         # 's' is the message to show - it is only shown once.
         # 'exit_flag' determines whether the program will exit or not.
-        s = "Type 'p' to play again, 'x' to exit."
+        s = "Type 'p' to play again, 'x' to exit.\n"
         exit_flag = False
         while True:
             exitcode = input(s)[0]
@@ -147,6 +159,7 @@ def main_func(args):
                 return;
             if exitcode == 'p':
                 break
+            print("Invalid response.")
 
         # Update round counter.
         round_idx += 1
