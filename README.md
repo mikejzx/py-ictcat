@@ -2,6 +2,7 @@
 This repository contains all source code for my Term 4 ICT Common Assessment Task.
 
 Currently completed problems:
-* A10 - Caesar Cipher
-* B4 - Hangman
-* B8 - Noughts & Crosses
+* A10 - Caesar Cipher (Difficulty: :star: :star: :star:)
+* A12 - Pig Latin (Difficulty: :star: :star: :star:)
+* B4 - Hangman (Difficulty: :star: :star: :star: :star:)
+* B8 - Noughts & Crosses (Difficulty: :star: :star: :star: :star:)

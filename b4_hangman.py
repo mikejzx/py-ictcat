@@ -1,6 +1,6 @@
 # -- -- -- -- -- -- -- -- -- -- -- -- --
 # ICT CAT Term 4, 2019
-# Category B - Problem 4: Hangman
+# Category B - Problem 4: Hangman (Difficulty: ****)
 # https://github.com/mikejzx/py-ictcat
 #
 # -- -- -- -- -- -- -- -- -- -- -- -- --

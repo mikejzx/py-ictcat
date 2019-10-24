@@ -1,6 +1,6 @@
 # -- -- -- -- -- -- -- -- -- -- -- -- --
 # ICT CAT Term 4, 2019
-# Category B - Problem 8: Noughts and Crosses
+# Category A - Problem 10: Caesar Cipher (Difficulty: ***)
 # https://github.com/mikejzx/py-ictcat
 #
 # -- -- -- -- -- -- -- -- -- -- -- -- --
