@@ -11,10 +11,11 @@
 # -- -- -- -- -- -- -- -- -- -- -- -- --
 
 # Imports
-import curses              # The TUI library the project uses.
-from curses import wrapper # Wrapper to keep error-handling clean.
-import random              # For random.randrange
-import math                # For math.random
+import curses                 # The TUI library the project uses.
+from curses import wrapper    # Wrapper to keep error-handling clean.
+import random                 # For random.randrange()
+import math                   # For math.random()
+from datetime import datetime # For datetime.now()
 
 # Constants
 GAME_WIDTH   = 24        # Width  of the game.
@@ -50,7 +51,8 @@ MINIMUM_DELAY = 50          # Minimum allowed delay.
 MAX_APPLES = 3              # Limit to number of apples allowed on screen at once.
 APPLE_SPAWN_DEVIATION = 2   # How much deviation there is in the spawn times of apples.
 SCORE_INCREMENT = 1         # How much score is given per apple collected.
-HISCORE_FILE_PATH = "./hiscores.txt" # Highest score file path.
+HISCORE_FPATH = "./hiscores.txt" # Highest score file path.
+HISCORE_FSEP  = "/"         # Seperator for information in hiscores file.
 
 # Global variables.
 cur_screen = SCREEN_MENU    # Current screen.
@@ -65,14 +67,126 @@ game_apples      = []       # The apples in the game.
 game_score       = 0        # The player's score. Increases based on number of appls collected
 game_ticks       = 0        # A game timer used to count when to spawn apples.      
 game_over        = False    # Is the game over?
-hiscore          = 0        # Highest score acheived. Set to zero if hiscore.txt file is empty else read.
-hiscore_list     = [0]      # List of highest scores. Read from file initially.
+score_man        = None     # The main score manager object.
 
 # List of tail nodes that the player has.
 player_tail      = []
 
 # The game grid, initialised to empty by default.
 game_grid  = [GRIDID_EMPTY] * GAME_WIDTH * GAME_HEIGHT
+
+# Score-manager class.
+# Handles I/O of scores file.
+class score_manager:
+    # Constructor. No parameters as of yet.
+    def __init__(self):
+        self.score_list = []
+
+        # Attempt to open hiscores file.
+        try:
+            scores_file = open(HISCORE_FPATH, "rt")
+            # Read each line of existing file into the list.
+            for line in scores_file:
+                # Repeated often so put into a lamdba as a shorthand.
+                find_fsep = lambda : line.find(HISCORE_FSEP)
+
+                # Name
+                x = find_fsep()     # Find first seperator.
+                name = line[:x]     # Get the name
+                line = line[x + 1:] # Remove name from line. (+1 to include seperator.)
+
+                # Score.
+                x = find_fsep()       # Find next seperator.
+                score = int(line[:x]) # Read the score integer.
+                line = line[x + 1:]   # Remove the score from line.
+
+                # Date
+                x = find_fsep()     # Find next seperator.
+                date = line[:x]     # Read the date string.
+                line = line[x + 1:] # Remove date from line.
+
+                # Time, no seperator so just strip NL char.
+                time = line.strip("\n")
+
+                # Construct and push to back of list.
+                self.score_list.append({
+                    "name":     name,
+                    "score":    score,
+                    "date_str": date,
+                    "time_str": time
+                })
+            
+            # Close the file.
+            scores_file.close()
+
+            # Re-sort just in case.
+            self.sort_scorelist()
+        except:
+            # Just create and close the file.
+            scores_file = open(HISCORE_FPATH, "wt")
+            scores_file.close()
+
+
+    # Sorts the score list.
+    def sort_scorelist(self):
+        # This sort function sorts the list by the content's score.
+        sort_func = lambda dict : dict["score"]
+        
+        # Call sort() with reverse flag enabled, and using the lambda above.
+        self.score_list.sort(reverse=True, key=sort_func)
+
+    # Add a new score to the score list.
+    # Pass name of the user, and their score as arguments.
+    # Time and date are computed automatically.
+    def add_score(self, name, score):
+        # Get date, time, and construct and push 
+        # a dictionary of all info to the list.
+        now = datetime.now()
+        date = now.strftime("%d.%m.%Y")
+        time = now.strftime("%H:%M")
+        self.score_list.append({
+            "name":     name,
+            "score":    score,
+            "date_str": date,
+            "time_str": time
+        })
+
+        # Re-sort list of scores.
+        self.sort_scorelist()
+
+        # Write to file
+        self.write_scores()
+
+    # Write the scorelist to the hiscores file.
+    def write_scores(self):
+        # Open the scores file with write permission.
+        scores_file = open(HISCORE_FPATH, "wt")
+
+        # Iterate over score list and write each line
+        for i in self.score_list:
+            # Get each value from current score dictionary.
+            n = i["name"]
+            s = i["score"]
+            d = i["date_str"]
+            t = i["time_str"]
+
+            # Write the line
+            scores_file.write(n + HISCORE_FSEP + str(s) + HISCORE_FSEP + d + HISCORE_FSEP + t + "\n")
+
+        # Close the file
+        scores_file.close()
+
+    # Returns the highest score in the list.
+    def hiscore(self):
+        if len(self.score_list) == 0:
+            return 0
+        return self.score_list[0]["score"]
+
+    # Returns the name of the highest score owner.
+    def hiscore_holder(self):
+        if len(self.score_list) == 0:
+            return "----"
+        return self.score_list[0]["name"]
 
 # Reset the values of the game iteself.
 def game_reset():
@@ -104,27 +218,14 @@ def game_init():
     game_reset()
     global wnd
     global colour_supported
-    global hiscorefile
-    global hiscore_list
-    global hiscore
+    global score_man
 
     # Hide cursor and set timeout
     curses.curs_set(False)
     wnd.timeout(BASE_DELAY)
 
-    # Read the hiscore file. We want both read and write permissions.
-    hiscorefile = open(HISCORE_FILE_PATH, "rt")
-    for line in hiscorefile:
-        # Read highest scores into an array.
-        hiscore_list.append(int(line.strip("\n")))
-
-    # Check if anything was read.
-    if len(hiscore_list) < 1:
-        hiscore = 0
-    else:
-        hiscore_list.sort()
-        hiscore = hiscore_list[0]
-    
+    # Score manager initialisation.
+    score_man = score_manager()
 
     # Check for terminal colour support.
     colour_supported = curses.has_colors()
@@ -364,7 +465,7 @@ def game_loop_main():
 
     # Draw the score
     wnd.addstr(GAME_HEIGHT + 1, 1, "SCORE: " + str(game_score))
-    wnd.addstr(GAME_HEIGHT + 2, 1, "HISCORE: " + str(hiscore))
+    wnd.addstr(GAME_HEIGHT + 2, 1, "HI-SCORE: " + str(score_man.hiscore()) + ", '" + score_man.hiscore_holder() + "'")
     wnd.addstr(GAME_HEIGHT + 3, 1, "Press 'p' to pause the game.")
 
     # Get and check input.
@@ -425,7 +526,7 @@ def game_loop_main():
             k = wnd.getch()
 
         # Reset game and goto menu.
-        if game_score > hiscore:
+        if game_score > score_man.hiscore():
             # New highest score.
             change_screen(SCREEN_NEWHIGHEST)
         else:
@@ -476,13 +577,16 @@ def game_loop_pause():
 # Loop method for the highest-score screen.
 def game_loop_hiscore_screen():
     # Draw the main text.
-    addstr_centred(1, " -- NEW HISCORE -- ")
-    addstr_centred(2, "Enter a name below:")
-    addstr_centred(3, "AAA")
+    addstr_centred(1, " -- NEW HI-SCORE -- ")
+    addstr_centred(2, "Enter 4-digit alphanumeric name below:")
+    addstr_centred(3, "AAAA")
 
     # Get input.
     key = wnd.getch()
     if is_return_key(key):
+        # Add the score to the score manager's list.
+        score_man.add_score("TEST", game_score)
+
         game_reset()
         change_screen(SCREEN_MENU)
 
