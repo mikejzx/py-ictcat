@@ -557,10 +557,14 @@ def game_loop_main():
         # Generate a y and x that's not in the player and not already in list.
         y = -1
         x = -1
-        while y < 0 or y in player_tail or y == player_pos_head:
-            y = random.randrange(0, GAME_HEIGHT)
-        while x < 0 or x in player_tail or x == player_pos_head or [y, x] in game_apples:
+
+        # So Python doesn't have do-while loops - very convenient...
+        while True:
             x = random.randrange(0, GAME_WIDTH)
+            y = random.randrange(0, GAME_HEIGHT)
+            node = [y, x]
+            if not (node in player_tail or node == player_pos_head or node in game_apples):
+                break
 
         # Add the apple to the apple list.
         game_apples.append([y, x])
