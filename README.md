@@ -8,3 +8,4 @@ Currently completed problems:
 * A12 - Pig Latin (Difficulty: :star: :star: :star:)
 * B4 - Hangman (Difficulty: :star: :star: :star: :star:)
 * B8 - Noughts & Crosses (Difficulty: :star: :star: :star: :star:)
+* C0 ("Major project" of choice) - Snake
