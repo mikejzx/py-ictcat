@@ -25,10 +25,21 @@ SCREEN_MENU  = 0         # Screen ID for main menu
 SCREEN_GAME  = 1         # Screen ID for game screen
 SCREEN_PAUSE = 2         # Screen ID for pause menu
 SCREEN_NEWHIGHEST = 3    # Screen ID for highest score screen.
+SCREEN_RANKINGS   = 4    # Screen ID for rankings screen.
 BTNID_MENU_PLAY = 0      # ID For play button on main menu
-BTNID_MENU_QUIT = 1      # ID For quit button on main menu
+BTNID_MENU_SCORES = 1    # ID For scores button on main menu
+BTNID_MENU_QUIT = 2      # ID For quit button on main menu
 BTNID_PAUSE_RESUME = 0   # ID for Resume button on pause menu.
 BTNID_PAUSE_GOTOMENU = 1 # ID for Menu button on pause menu.
+BTNDESC_MENU = [
+    "Play the game.", 
+    "View the highest scores achieved on this computer.", 
+    "Quit the game."
+]
+BTNDESC_PAUSE = [
+    "Resume the game.",
+    "Discard this game, and return to menu."
+]
 GRIDID_EMPTY = 0         # Grid cell: empty
 GRIDID_HEAD  = 1         # Grid cell: snake head
 GRIDID_TAIL  = 2         # Grid cell: snake tail.
@@ -40,6 +51,9 @@ GRIDATTR_TAIL  = 0       # Attribute for tail cell.
 GRIDATTR_APPL  = 0       # Attribute for apple cell.
 GRIDATTR_COLL  = 0       # Attribute for collission
 STRATTR_GAMEOVER = 0     # String attribute for gameover text.
+STRATTR_HEADER = 0       # String attribute for header text.
+STRATTR_MISC = 0         # String attribute for miscellaneous text.
+STRATTR_TOOLTIP = 0      # String attribute for tooltips.
 GRIDCHR_HEAD   = "Y "    # Character representing head  for non-colour displays.
 GRIDCHR_TAIL   = "X "    # Character representing tail  for non-colour displays.
 GRIDCHR_APPL   = "A "    # Character representing apple for non-colour displays.
@@ -53,6 +67,10 @@ APPLE_SPAWN_DEVIATION = 2   # How much deviation there is in the spawn times of 
 SCORE_INCREMENT = 1         # How much score is given per apple collected.
 HISCORE_FPATH = "./hiscores.txt" # Highest score file path.
 HISCORE_FSEP  = "/"         # Seperator for information in hiscores file.
+HISCORE_NAME_LEN = 4        # Number of chars in hi-score name entries.
+HISCORE_VALIDCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-" # Valid characters for a hi-score entry.
+HISCORE_VALIDCHARS_ORDS_UP  = [] # Valid characters for hi-score entry in char-code format. (Uppercase)
+HISCORE_VALIDCHARS_ORDS_LOW = [] # Valid characters for hi-score entry in char-code format. (Lowercase)
 
 # Global variables.
 cur_screen = SCREEN_MENU    # Current screen.
@@ -68,6 +86,10 @@ game_score       = 0        # The player's score. Increases based on number of a
 game_ticks       = 0        # A game timer used to count when to spawn apples.      
 game_over        = False    # Is the game over?
 score_man        = None     # The main score manager object.
+# High score screen state variables:
+hsscr_ltr_idx      = 0                      # [High score screen] Current letter index.
+hsscr_name         = ["A"] * HISCORE_NAME_LEN # [High score screen] Name entered currently.
+hsscr_name_indices = [0]   * HISCORE_NAME_LEN # [High score screen] Name characters position in valid char string.
 
 # List of tail nodes that the player has.
 player_tail      = []
@@ -88,20 +110,20 @@ class score_manager:
             # Read each line of existing file into the list.
             for line in scores_file:
                 # Repeated often so put into a lamdba as a shorthand.
-                find_fsep = lambda : line.find(HISCORE_FSEP)
+                l_find_fsep = lambda : line.find(HISCORE_FSEP)
 
                 # Name
-                x = find_fsep()     # Find first seperator.
+                x = l_find_fsep()     # Find first seperator.
                 name = line[:x]     # Get the name
                 line = line[x + 1:] # Remove name from line. (+1 to include seperator.)
 
                 # Score.
-                x = find_fsep()       # Find next seperator.
+                x = l_find_fsep()       # Find next seperator.
                 score = int(line[:x]) # Read the score integer.
                 line = line[x + 1:]   # Remove the score from line.
 
                 # Date
-                x = find_fsep()     # Find next seperator.
+                x = l_find_fsep()     # Find next seperator.
                 date = line[:x]     # Read the date string.
                 line = line[x + 1:] # Remove date from line.
 
@@ -130,10 +152,10 @@ class score_manager:
     # Sorts the score list.
     def sort_scorelist(self):
         # This sort function sorts the list by the content's score.
-        sort_func = lambda dict : dict["score"]
+        l_sort_func = lambda dict : dict["score"]
         
         # Call sort() with reverse flag enabled, and using the lambda above.
-        self.score_list.sort(reverse=True, key=sort_func)
+        self.score_list.sort(reverse=True, key=l_sort_func)
 
     # Add a new score to the score list.
     # Pass name of the user, and their score as arguments.
@@ -219,10 +241,19 @@ def game_init():
     global wnd
     global colour_supported
     global score_man
+    global HISCORE_VALIDCHARS_ORDS_LOW
+    global HISCORE_VALIDCHARS_ORDS_UP
 
     # Hide cursor and set timeout
     curses.curs_set(False)
     wnd.timeout(BASE_DELAY)
+
+    # Initialise the valid chars list
+    HISCORE_VALIDCHARS_ORDS_LOW = []
+    HISCORE_VALIDCHARS_ORDS_UP  = []
+    for i in HISCORE_VALIDCHARS:
+        HISCORE_VALIDCHARS_ORDS_UP.append(ord(i))
+        HISCORE_VALIDCHARS_ORDS_LOW.append(ord(i.lower()))
 
     # Score manager initialisation.
     score_man = score_manager()
@@ -242,6 +273,12 @@ def game_init():
         curses.init_pair(8, curses.COLOR_BLACK,   curses.COLOR_BLACK)
         # Gameover screen colour pair
         curses.init_pair(9, curses.COLOR_RED,     curses.COLOR_WHITE)
+        # Header attribute
+        curses.init_pair(10, curses.COLOR_MAGENTA,curses.COLOR_BLACK)
+        # Misc
+        curses.init_pair(11, curses.COLOR_RED,    curses.COLOR_BLACK)
+        # Tooltips
+        curses.init_pair(12, curses.COLOR_YELLOW, curses.COLOR_BLACK)
 
         # Reinitialise these "constants", (can't use color_pair
         #    until initscr gets called...)
@@ -251,12 +288,18 @@ def game_init():
         global GRIDATTR_APPL
         global GRIDATTR_COLL
         global STRATTR_GAMEOVER
+        global STRATTR_HEADER
+        global STRATTR_MISC
+        global STRATTR_TOOLTIP
         GRIDATTR_EMPTY = curses.color_pair(7) # Set bg to white.
         GRIDATTR_HEAD  = curses.color_pair(3) # Set head to green.
         GRIDATTR_TAIL  = curses.color_pair(3) # Set tail to green.
         GRIDATTR_APPL  = curses.color_pair(5) # Set apples to cyan.
         GRIDATTR_COLL  = curses.color_pair(1) # Set collisions to red.
-        STRATTR_GAMEOVER = curses.color_pair(9)
+        STRATTR_GAMEOVER = curses.color_pair(9) # Set gameover screen to red+white.
+        STRATTR_HEADER = curses.color_pair(10)
+        STRATTR_MISC = curses.color_pair(11)
+        STRATTR_TOOLTIP = curses.color_pair(12)
 
 
 # Adds a centred string to the curses TUI.
@@ -315,13 +358,24 @@ def is_return_key(k):
 def change_screen(s):
     global cur_screen
     global wnd
+    global hsscr_ltr_idx
+    global hsscr_name
+    global sel_idx
+
+    # Change screen and set button index to zero.
     cur_screen = s
+    sel_idx = 0
 
     # Set the game to have game speed.
     if cur_screen == SCREEN_GAME:
         wnd.timeout(game_speed)
     else:
         wnd.timeout(BASE_DELAY)
+
+    # Hi-score screen needs hsscr_ltr_idx set to zero.
+    if cur_screen == SCREEN_NEWHIGHEST:
+        hsscr_ltr_idx = 0
+        hsscr_name = ["A"] * HISCORE_NAME_LEN
 
 # Clamps a to b and c.
 def clamp(a, b, c):
@@ -353,15 +407,19 @@ def game_loop_menu():
     global cur_screen
 
     # Draw header.
-    addstr_centred(1, " -- SNAKE GAME -- ")
-    addstr_centred(2, "Written by Michael for ICT CAT")
-    addstr_centred(3, "(Use arrow keys to navigate.)")
+    addstr_centred(1, " -- SNAKE GAME -- ", STRATTR_HEADER)
+    addstr_centred(3, "Written by Michael for ICT CAT", curses.color_pair(11))
+    addstr_centred(4, "(Use arrow keys to navigate.)")
 
     # Draw buttons
-    btn_attrs = [0, 0]
+    btn_attrs = [0, 0, 0]
     btn_attrs[sel_idx] = curses.A_STANDOUT
-    addstr_centred(5, "Play game", btn_attrs[BTNID_MENU_PLAY])
-    addstr_centred(6, "Quit", btn_attrs[BTNID_MENU_QUIT])
+    addstr_centred(6, "Play game", btn_attrs[BTNID_MENU_PLAY])
+    addstr_centred(7, "Rankings", btn_attrs[BTNID_MENU_SCORES])
+    addstr_centred(8, "Quit", btn_attrs[BTNID_MENU_QUIT])
+
+    # Draw the tooltip.
+    addstr_centred(10, BTNDESC_MENU[sel_idx], STRATTR_TOOLTIP)
 
     # Get and check input.
     key = wnd.getch()
@@ -376,13 +434,14 @@ def game_loop_menu():
         if sel_idx == BTNID_MENU_PLAY:
             # Play button, switch to game screen.
             change_screen(SCREEN_GAME)
+        elif sel_idx == BTNID_MENU_SCORES:
+            change_screen(SCREEN_RANKINGS)
         elif sel_idx == BTNID_MENU_QUIT:
             # Quit the game
             change_screen(SCREEN_NONE)
-            sel_idx = 0
     
-    # Wrap selection around from 0 to 1
-    sel_idx %= 2
+    # Wrap selection around from 0 to 2
+    sel_idx %= len(btn_attrs)
 
 # Loop method for the game itself.
 def game_loop_main():
@@ -464,9 +523,9 @@ def game_loop_main():
                 wnd.addstr(y, x, GRIDCHR_COLL, GRIDATTR_COLL)
 
     # Draw the score
-    wnd.addstr(GAME_HEIGHT + 1, 1, "SCORE: " + str(game_score))
-    wnd.addstr(GAME_HEIGHT + 2, 1, "HI-SCORE: " + str(score_man.hiscore()) + ", '" + score_man.hiscore_holder() + "'")
-    wnd.addstr(GAME_HEIGHT + 3, 1, "Press 'p' to pause the game.")
+    wnd.addstr(GAME_HEIGHT + 1, 1, "SCORE:    {:04d}".format(game_score))
+    wnd.addstr(GAME_HEIGHT + 2, 1, "HI-SCORE: {:04d}".format(score_man.hiscore()) + ", '" + score_man.hiscore_holder() + "'")
+    wnd.addstr(GAME_HEIGHT + 4, 1, "Press 'p' to pause the game.")
 
     # Get and check input.
     key = wnd.getch()
@@ -541,13 +600,16 @@ def game_loop_pause():
     global cur_screen
 
     # Draw header.
-    addstr_centred(1, " -- PAUSED -- ")
+    addstr_centred(1, " -- PAUSED -- ", STRATTR_HEADER)
 
     # Draw buttons
     btn_attrs = [0, 0]
     btn_attrs[sel_idx] = curses.A_STANDOUT
     addstr_centred(3, "Resume", btn_attrs[BTNID_PAUSE_RESUME])
     addstr_centred(4, "Goto Menu", btn_attrs[BTNID_PAUSE_GOTOMENU])
+
+    # Draw tooltip
+    addstr_centred(6, BTNDESC_PAUSE[sel_idx], STRATTR_TOOLTIP)
 
     # Get and check input.
     # (Very similar to menu's stuff, may need to make a method...)
@@ -574,20 +636,96 @@ def game_loop_pause():
     # Wrap selection around from 0 to 1
     sel_idx %= 2
 
+# Draw 'num' amount of scores on the screen at y offset.
+def draw_scores(offset, num):
+    # Check if scores exist.
+    if len(score_man.score_list) == 0:
+        addstr_centred(offset, "No records yet...")
+        return
+
+    # Draw header.
+    addstr_centred(offset, "RANK NAME SCORE     TIME          ")
+    rank = 0
+    # Iterate through first 10 hi-scores.
+    for i in score_man.score_list[0:min(num, len(score_man.score_list))]:
+        n = i["name"]
+        s = i["score"]
+        d = i["date_str"]
+        t = i["time_str"]
+        addstr_centred(offset + rank + 1, "{}.   {}  {:04d}  {}, {}".format(rank, n, s, d, t))
+        rank += 1
+
 # Loop method for the highest-score screen.
 def game_loop_hiscore_screen():
+    global hsscr_ltr_idx
+    global hsscr_name
+    global hsscr_name_indices
+
     # Draw the main text.
-    addstr_centred(1, " -- NEW HI-SCORE -- ")
-    addstr_centred(2, "Enter 4-digit alphanumeric name below:")
-    addstr_centred(3, "AAAA")
+    addstr_centred(1, " -- NEW HI-SCORE: {} -- ".format(game_score), STRATTR_HEADER)
+    addstr_centred(2, "Enter {}-digit alphanumeric name below:".format(HISCORE_NAME_LEN))
+
+    # Draw the input area
+    xpos = int((int(scrdims[1]) - HISCORE_NAME_LEN) / 2)
+    wnd.addstr(3, xpos, "".join(hsscr_name))
+    wnd.addstr(3, xpos + hsscr_ltr_idx, hsscr_name[hsscr_ltr_idx], curses.A_STANDOUT)
+
+    # Draw the hi-scores.
+    addstr_centred(5, "-- RANKINGS --", STRATTR_HEADER)
+    draw_scores(7, 10)
+    
+
+    # Used in key up/down events. a is either +1 or -1 depending on increment/decrement respectively.
+    l_get_char = lambda a : (hsscr_name_indices[hsscr_ltr_idx] + a) % len(HISCORE_VALIDCHARS)
+    # Just another shorthand
+    l_set_char = lambda : HISCORE_VALIDCHARS[hsscr_name_indices[hsscr_ltr_idx]]
+    # Shorthand for increment
+    l_incr     = lambda a : (hsscr_ltr_idx + a) % HISCORE_NAME_LEN
 
     # Get input.
     key = wnd.getch()
     if is_return_key(key):
-        # Add the score to the score manager's list.
-        score_man.add_score("TEST", game_score)
+        # Increase letter index if not last letter.
+        if hsscr_ltr_idx < HISCORE_NAME_LEN - 1:
+            hsscr_ltr_idx += 1
+        else:
+            # User is on last letter - switch screens.
 
-        game_reset()
+            # Add the score to the score manager's list.
+            score_man.add_score("".join(hsscr_name), game_score)
+
+            # Reset game and change screens.
+            game_reset()
+            change_screen(SCREEN_MENU)
+    elif key == curses.KEY_UP:
+        # Key up, increase letter index.
+        hsscr_name_indices[hsscr_ltr_idx] = l_get_char(1)
+        hsscr_name[hsscr_ltr_idx] = l_set_char()
+    elif key == curses.KEY_DOWN:
+        # Key down, decrease letter index.
+        hsscr_name_indices[hsscr_ltr_idx] = l_get_char(-1)
+        hsscr_name[hsscr_ltr_idx] = l_set_char()
+    elif key == curses.KEY_LEFT or key == curses.KEY_BACKSPACE:
+        # Decrement letter idx.
+        hsscr_ltr_idx = l_incr(-1)
+    elif key == curses.KEY_RIGHT:
+        hsscr_ltr_idx = l_incr(1)
+    elif key in HISCORE_VALIDCHARS_ORDS_LOW or key in HISCORE_VALIDCHARS_ORDS_UP:
+        # Key is valid already, just add it to the string..
+        hsscr_name[hsscr_ltr_idx] = chr(key).upper()
+        if hsscr_ltr_idx < HISCORE_NAME_LEN - 1:
+            hsscr_ltr_idx = l_incr(1)
+
+# Loop for the rankings screen.
+def game_loop_rankings():
+    # Draw all the text. Back btn attribute is always.
+    addstr_centred(1, "-- RANKINGS --", STRATTR_HEADER)
+    addstr_centred(3, "Press RETURN to go back", curses.A_STANDOUT)
+    draw_scores(5, 10)
+
+    # Wait for return key input.
+    key = wnd.getch()
+    if is_return_key(key):
         change_screen(SCREEN_MENU)
 
 # The main game loop.
@@ -611,6 +749,9 @@ def game_loop():
     elif cur_screen == SCREEN_NEWHIGHEST:
         # -- Draw the highest score screen. --
         game_loop_hiscore_screen()
+    elif cur_screen == SCREEN_RANKINGS:
+        # -- Draw the rankings screen. --
+        game_loop_rankings()
     elif cur_screen == SCREEN_NONE:
         # -- Exit the game loop.
         return False
@@ -643,6 +784,8 @@ def main(stdscr):
     # Run the main game loop.
     while game_loop():
         pass
+
+    game_deinitialise()
 
 # Call the main method in a curses TUI wrapper object.
 # This allows for cleaner error handling...
