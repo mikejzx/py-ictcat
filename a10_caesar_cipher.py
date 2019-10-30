@@ -65,9 +65,9 @@ while True:
 # Change process based on mode selected.
 if encrypting:
     # Encrypt the string.
-    print("Encrypted with key offset of", key, "\n")
-    print(caesar_encrypt(data, key))
+    print("Encrypted with key offset of", key)
+    print("Encrypted string: ", caesar_encrypt(data, key))
 else:
     # Decrypt the string.
-    print("Decrypted with key offset of", key, "\n")
-    print(caesar_decrypt(data, key))
+    print("Decrypted with key offset of", key)
+    print("Decrypted string: ", caesar_decrypt(data, key))

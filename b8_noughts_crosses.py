@@ -27,6 +27,11 @@ GRID_SEPERATOR = "   -------------"
 # Global vars
 grid_vals      = [ID_EMPTY] * (GRID_WIDTH * GRID_HEIGHT) # All values on the grid. Initialised to empty.
 
+# Score of player and computer.
+score_player = 0
+score_ai = 0
+tie_count = 0
+
 # Draw the grid.
 def draw_grid():
     # Iterate through every cell in the grid.
@@ -49,6 +54,7 @@ def draw_grid():
 # where the letter represents row, and number represents
 # column.
 def parse_input():
+    global grid_vals
     row    = 0
     column = 0
     while True:
@@ -97,16 +103,80 @@ def ai_random_move():
     # Return list constructed from the position.
     return [column, row]
 
+# Convert a 1D position on the grid to 2D.
+def pos1d_to_2d(i):
+    column = i % GRID_WIDTH
+    row = int(round((i - column) / GRID_HEIGHT))
+    return [column, row]
+
+# Generates a move on the board that is either
+# random or a winning move.
+def ai_smart_move(ai_id, player_id):
+    global grid_vals
+
+    # Temporary grid used for checking winning moves.
+    grid_temp = []
+    for j in grid_vals:
+        grid_temp.append(j)
+
+    # First check any moves that are winning moves.
+    for i in range(0, len(grid_vals)):
+        if grid_vals[i] != ID_EMPTY:
+            # Occupied cell, skip.
+            continue
+        # Set this point in a temporary board to be the AI's move.
+        grid_temp[i] = ai_id
+
+        # Check if the solution exists by setting this point to AI's.
+        if find_solution(ai_id, grid_temp):
+            # Convert the 1D value to 2D position.
+            return pos1d_to_2d(i)
+
+        # See if the move can be used by other player to win.
+        # If it can the AI will take it.
+        grid_temp[i] = player_id
+        if find_solution(player_id, grid_temp):
+            # Convert pos to 2D and take it.
+            return pos1d_to_2d(i)
+
+        # Didn't find solution, reset the grid to old.
+        grid_temp[i] = ID_EMPTY
+
+    # No winning moves, pick a random one.
+    return ai_random_move()
+
 # Make the move of the passed ID.
 # Checks for pre-occupation must be done PRIOR 
 # to calling this method!
-def next_move(move_pos, id):
+def next_move(move_pos, id, player_id, ai_id):
     # Set the ID at the specified point to the ID.
     grid_vals[move_pos[1] * GRID_WIDTH + move_pos[0]] = id
 
+    # Check for winner.
+    if find_solution(player_id, grid_vals):
+        global score_player
+        draw_grid()
+        print("Congratulations, you won.")
+        score_player += 1
+        return False
+    if find_solution(ai_id, grid_vals):
+        global score_ai
+        draw_grid()
+        print("You lose.")
+        score_ai += 1
+        return False
+    # Check for tie
+    if not ID_EMPTY in grid_vals:
+        global tie_count
+        draw_grid()
+        print("You tied with the computer.")
+        tie_count += 1
+        return False
+    return True
+
 # Looks for a solution for the ID's points.
 # If found return value is True, if not - False.
-def find_solution(id):
+def find_solution(id, grid):
     # ------------------------
     # STRAIGHT-LINE ALGORITHMS:
     # ------------------------
@@ -115,7 +185,7 @@ def find_solution(id):
     for y in range(0, GRID_HEIGHT):
         count = 0
         for x in range(0, GRID_WIDTH):
-            if grid_vals[y * GRID_HEIGHT + x] == id:
+            if grid[y * GRID_HEIGHT + x] == id:
                 count += 1
         if count == GRID_WIDTH:
             return True
@@ -124,7 +194,7 @@ def find_solution(id):
     for x in range(0, GRID_WIDTH):
         count = 0
         for y in range(0, GRID_HEIGHT):
-            if grid_vals[y * GRID_HEIGHT + x] == id:
+            if grid[y * GRID_HEIGHT + x] == id:
                 count += 1
         if count == GRID_HEIGHT:
             return True
@@ -137,7 +207,7 @@ def find_solution(id):
     # Check backwards diagonal
     count = 0
     for i in range(0, GRID_WIDTH):
-        if grid_vals[i * GRID_WIDTH + i] == id:
+        if grid[i * GRID_WIDTH + i] == id:
             count += 1
     if count == GRID_WIDTH:
         return True
@@ -147,7 +217,7 @@ def find_solution(id):
     count = 0
     for i in range(0, GRID_WIDTH):
         idx += GRID_WIDTH - 1
-        if grid_vals[idx] == id:
+        if grid[idx] == id:
             count += 1
     if count == GRID_WIDTH:
         return True
@@ -158,12 +228,10 @@ def find_solution(id):
 # when the program is executed.
 def main_func():
     print("-- -- Noughts & Crosses -- --")
-    
-    # Score of player and computer.
-    score_player = 0
-    score_ai = 0
+    global grid_vals
+
+    # Number of rounds played.
     round_counter = 0
-    tie_count = 0
 
     # Loop over infinite number of rounds. User is asked at
     # end of round whether they want to continue or exit.
@@ -181,7 +249,7 @@ def main_func():
         # If computer is chosen, they will pick a random cell.
         first_player = random.choice([ID_NOUGHTS, ID_CROSSES]) 
         if first_player == ai_id :
-            next_move(ai_random_move(), ai_id)
+            next_move(ai_random_move(), ai_id, player_id, ai_id)
             print("Computer played the first move.")
         else:
             print("You are playing the first move.")
@@ -189,23 +257,13 @@ def main_func():
         # Main game loop.
         while True:
             draw_grid();
-            next_move(parse_input(), player_id)
-            next_move(ai_random_move(), ai_id)
-
-            # Check for winner.
-            if find_solution(player_id):
-                print("Congratulations, you won.")
-                score_player += 1
+            if not next_move(parse_input(), player_id, player_id, ai_id):
                 break
-            if find_solution(ai_id):
-                print("You lose.")
-                score_ai += 1
+            # Stupid AI: Picks a random cell.
+            # next_move(ai_random_move(), ai_id)
+            # Smart AI: Checks for move that will yield a win.
+            if not next_move(ai_smart_move(ai_id, player_id), ai_id, player_id, ai_id):
                 break
-            # Check for tie
-            if not ID_EMPTY in grid_vals:
-                print("You tied with the computer.")
-                tie_count += 1
-                break;
 
         tie_str = "\n  Ties: " + str(tie_count) if tie_count > 0 else "" 
         print("Scores:\n  You:", score_player, "\n  Computer:", score_ai, tie_str)

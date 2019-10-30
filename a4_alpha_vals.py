@@ -37,4 +37,6 @@ def get_word_value(data):
     return sum
 
 # Get input, compute sum, and print.
-print(get_word_value(input("Enter a string you wish to get the value of.\n").lower()))
+print("-- Alphabet Values --")
+while True:
+    print(get_word_value(input("Enter a string you wish to get the value of.\n").lower()))

@@ -81,4 +81,5 @@ def string_to_piglatin(data):
     # Return the translated string.
     return output
 
-print(string_to_piglatin(input("Enter the text you wish to translate into Pig Latin:\n")))
+while True:
+    print("Translates to: " + string_to_piglatin(input("Enter the text you wish to translate into Pig Latin:\n")))
