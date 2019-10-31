@@ -351,8 +351,28 @@ def shuffle_spawntime_offset():
     apple_spawntime_offset = random.randrange(-APPLE_SPAWN_DEVIATION, APPLE_SPAWN_DEVIATION)
 
 # Returns whether the given key is the return key.
-def is_return_key(k):
+def is_key_return(k):
     return k == curses.KEY_ENTER or k == 0x0A or k == 0x0D
+
+# Returns whether the given key is an UP key.
+def is_key_up(k):
+    # Check if up arrow or vim (HJKL) up key or WASD up key.
+    return k == curses.KEY_UP or k == ord('k') or k == ord('K') or k == ord('w') or k == ord('W')
+
+# Returns whether the given key is a DOWN key.
+def is_key_down(k):
+    # Check if down arrow or vim (HJKL) down key or WASD down key.
+    return k == curses.KEY_DOWN or k == ord('j') or k == ord('J') or k == ord('s') or k == ord('S')
+
+# Returns whether the given key is a LEFT key.
+def is_key_left(k):
+    # Check if left arrow or vim (HJKL) left key or WASD left key.
+    return k == curses.KEY_LEFT or k == ord('h') or k == ord('H') or k == ord('a') or k == ord('A')
+
+# Returns whether the given key is a RIGHT key.
+def is_key_right(k):
+    # Check if right arrow or vim (HJKL) right key or WASD right key.
+    return k == curses.KEY_RIGHT or k == ord('l') or k == ord('L') or k == ord('d') or k == ord('D')
 
 # Switch the screen to s
 def change_screen(s):
@@ -423,13 +443,13 @@ def game_loop_menu():
 
     # Get and check input.
     key = wnd.getch()
-    if key == curses.KEY_UP:
+    if is_key_up(key):
         # Key up, decrement selected button index. 
         sel_idx = sel_idx - 1
-    elif key == curses.KEY_DOWN:
+    elif is_key_down(key):
         # Key down, increment selection
         sel_idx = sel_idx + 1
-    elif is_return_key(key):
+    elif is_key_return(key):
         # Return key pressed, check what was pressed. (Checks for both CR and LF ASCII codes just in case.)
         if sel_idx == BTNID_MENU_PLAY:
             # Play button, switch to game screen.
@@ -531,13 +551,13 @@ def game_loop_main():
     key = wnd.getch()
     if key == ord("p") or key == ord("P"):
         change_screen(SCREEN_PAUSE)
-    elif key == curses.KEY_UP:
+    elif is_key_up(key):
         player_velo = [-1, 0]
-    elif key == curses.KEY_DOWN:
+    elif is_key_down(key):
         player_velo = [1, 0]
-    elif key == curses.KEY_LEFT:
+    elif is_key_left(key):
         player_velo = [0, -1]
-    elif key == curses.KEY_RIGHT:
+    elif is_key_right(key):
         player_velo = [0, 1]
     
     # Force the delay
@@ -585,7 +605,7 @@ def game_loop_main():
         # Wait until user presses RETURN.
         wnd.timeout(-1)
         k = curses.ERR
-        while not is_return_key(k):
+        while not is_key_return(k):
             k = wnd.getch()
 
         # Reset game and goto menu.
@@ -618,13 +638,13 @@ def game_loop_pause():
     # Get and check input.
     # (Very similar to menu's stuff, may need to make a method...)
     key = wnd.getch()
-    if key == curses.KEY_UP:
+    if is_key_up(key):
         # Key up, decrement selected button index. 
         sel_idx = sel_idx - 1
-    elif key == curses.KEY_DOWN:
+    elif is_key_down(key):
         # Key down, increment selection
         sel_idx = sel_idx + 1
-    elif is_return_key(key):
+    elif is_key_return(key):
         # Return key pressed, check what was pressed. (Checks for both CR and LF ASCII codes just in case.)
         if sel_idx == BTNID_PAUSE_RESUME:
             # Play button, switch to game screen.
@@ -688,7 +708,7 @@ def game_loop_hiscore_screen():
 
     # Get input.
     key = wnd.getch()
-    if is_return_key(key):
+    if is_key_return(key):
         # Increase letter index if not last letter.
         if hsscr_ltr_idx < HISCORE_NAME_LEN - 1:
             hsscr_ltr_idx += 1
@@ -729,7 +749,7 @@ def game_loop_rankings():
 
     # Wait for return key input.
     key = wnd.getch()
-    if is_return_key(key):
+    if is_key_return(key):
         change_screen(SCREEN_MENU)
 
 # The main game loop.

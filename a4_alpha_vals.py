@@ -33,10 +33,11 @@ def get_word_value(data):
             # If not, just skip this iteration.
             continue
 
+        # Get the number at this position and add to sum.
         sum += get_alphabet_pos(i)
     return sum
 
 # Get input, compute sum, and print.
 print("-- Alphabet Values --")
 while True:
-    print(get_word_value(input("Enter a string you wish to get the value of.\n").lower()))
+    print("Value: ", get_word_value(input("Enter a string you wish to get the value of.\n").lower()))
