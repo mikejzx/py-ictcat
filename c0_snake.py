@@ -26,14 +26,17 @@ SCREEN_GAME  = 1         # Screen ID for game screen
 SCREEN_PAUSE = 2         # Screen ID for pause menu
 SCREEN_NEWHIGHEST = 3    # Screen ID for highest score screen.
 SCREEN_RANKINGS   = 4    # Screen ID for rankings screen.
+SCREEN_CONTROLS   = 5    # Screen ID for controls screen.
 BTNID_MENU_PLAY = 0      # ID For play button on main menu
 BTNID_MENU_SCORES = 1    # ID For scores button on main menu
-BTNID_MENU_QUIT = 2      # ID For quit button on main menu
+BTNID_MENU_CTRLS  = 2    # ID for controls button on main menu.
+BTNID_MENU_QUIT   = 3    # ID For quit button on main menu
 BTNID_PAUSE_RESUME = 0   # ID for Resume button on pause menu.
 BTNID_PAUSE_GOTOMENU = 1 # ID for Menu button on pause menu.
 BTNDESC_MENU = [
     "Play the game.", 
-    "View the highest scores achieved on this computer.", 
+    "View the highest scores achieved on this computer.",
+    "View the controls for the game.",
     "Quit the game."
 ]
 BTNDESC_PAUSE = [
@@ -356,23 +359,23 @@ def is_key_return(k):
 
 # Returns whether the given key is an UP key.
 def is_key_up(k):
-    # Check if up arrow or vim (HJKL) up key or WASD up key.
-    return k == curses.KEY_UP or k == ord('k') or k == ord('K') or k == ord('w') or k == ord('W')
+    # Check if up arrow or vim (HJKL) up key or WASD up key or Dvorak (,).
+    return k == curses.KEY_UP or k == ord('k') or k == ord('K') or k == ord('w') or k == ord('W') or k == ord(',')
 
 # Returns whether the given key is a DOWN key.
 def is_key_down(k):
-    # Check if down arrow or vim (HJKL) down key or WASD down key.
-    return k == curses.KEY_DOWN or k == ord('j') or k == ord('J') or k == ord('s') or k == ord('S')
+    # Check if down arrow or vim (HJKL) down key or WASD down key or Dvorak (O).
+    return k == curses.KEY_DOWN or k == ord('j') or k == ord('J') or k == ord('s') or k == ord('S') or k == ord('o') or k == ord('O')
 
 # Returns whether the given key is a LEFT key.
 def is_key_left(k):
-    # Check if left arrow or vim (HJKL) left key or WASD left key.
+    # Check if left arrow or vim (HJKL) left key or WASD left key or Dvorak (A).
     return k == curses.KEY_LEFT or k == ord('h') or k == ord('H') or k == ord('a') or k == ord('A')
 
 # Returns whether the given key is a RIGHT key.
 def is_key_right(k):
-    # Check if right arrow or vim (HJKL) right key or WASD right key.
-    return k == curses.KEY_RIGHT or k == ord('l') or k == ord('L') or k == ord('d') or k == ord('D')
+    # Check if right arrow or vim (HJKL) right key or WASD right key or Dvorak (E).
+    return k == curses.KEY_RIGHT or k == ord('l') or k == ord('L') or k == ord('d') or k == ord('D') or k == ord('e') or k == ord('E')
 
 # Switch the screen to s
 def change_screen(s):
@@ -431,15 +434,16 @@ def game_loop_menu():
     addstr_centred(3, "Written by Michael for ICT CAT", curses.color_pair(11))
     addstr_centred(4, "(Use arrow keys to navigate.)")
 
-    # Draw buttons
-    btn_attrs = [0, 0, 0]
+    # Draw all four menu buttons.
+    btn_attrs = [0] * 4
     btn_attrs[sel_idx] = curses.A_STANDOUT
     addstr_centred(6, "Play game", btn_attrs[BTNID_MENU_PLAY])
     addstr_centred(7, "Rankings", btn_attrs[BTNID_MENU_SCORES])
-    addstr_centred(8, "Quit", btn_attrs[BTNID_MENU_QUIT])
+    addstr_centred(8, "Controls", btn_attrs[BTNID_MENU_CTRLS])
+    addstr_centred(9, "Quit", btn_attrs[BTNID_MENU_QUIT])
 
     # Draw the tooltip.
-    addstr_centred(10, BTNDESC_MENU[sel_idx], STRATTR_TOOLTIP)
+    addstr_centred(11, BTNDESC_MENU[sel_idx], STRATTR_TOOLTIP)
 
     # Get and check input.
     key = wnd.getch()
@@ -456,6 +460,8 @@ def game_loop_menu():
             change_screen(SCREEN_GAME)
         elif sel_idx == BTNID_MENU_SCORES:
             change_screen(SCREEN_RANKINGS)
+        elif sel_idx == BTNID_MENU_CTRLS:
+            change_screen(SCREEN_CONTROLS)
         elif sel_idx == BTNID_MENU_QUIT:
             # Quit the game
             change_screen(SCREEN_NONE)
@@ -740,7 +746,7 @@ def game_loop_hiscore_screen():
         if hsscr_ltr_idx < HISCORE_NAME_LEN - 1:
             hsscr_ltr_idx = l_incr(1)
 
-# Loop for the rankings screen.
+# Loop for the Rankings screen.
 def game_loop_rankings():
     # Draw all the text. Back btn attribute is always.
     addstr_centred(1, "-- RANKINGS --", STRATTR_HEADER)
@@ -748,6 +754,28 @@ def game_loop_rankings():
     draw_scores(5, 10)
 
     # Wait for return key input.
+    key = wnd.getch()
+    if is_key_return(key):
+        change_screen(SCREEN_MENU)
+
+# Loop for Controls screen.
+def game_loop_controls():
+    addstr_centred(1, "-- CONTROLS --", STRATTR_HEADER)
+    addstr_centred(3, "This snake game features four ways of controlling the snake;")
+    addstr_centred(4, "The Arrow Keys, Vim Keys, WASD, and the Dvorak ,AOE Keys.")
+
+    addstr_centred(6,  "CONTROL       ARROW KEY      WASD VIM  DV.")
+    addstr_centred(7,  "Snake Left  : [Left Arrow],  [A], [H], [A]", STRATTR_MISC)
+    addstr_centred(8,  "Snake Down  : [Down Arrow],  [S], [J], [O]", STRATTR_MISC)
+    addstr_centred(9,  "Snake Up    : [Up Arrow],    [W], [K], [,]", STRATTR_MISC)
+    addstr_centred(10, "Snake Right : [Right Arrow], [D], [L], [E]", STRATTR_MISC)
+    addstr_centred(11, "Pause Game  : [P]                         ", STRATTR_MISC)
+    addstr_centred(13, "Be aware, the Snake Up, and Snake Down keys")
+    addstr_centred(14, "    can be used to navigate menus also.")
+
+    addstr_centred(16, "Press RETURN to go back", curses.A_STANDOUT)
+
+     # Wait for return key input.
     key = wnd.getch()
     if is_key_return(key):
         change_screen(SCREEN_MENU)
@@ -776,6 +804,9 @@ def game_loop():
     elif cur_screen == SCREEN_RANKINGS:
         # -- Draw the rankings screen. --
         game_loop_rankings()
+    elif cur_screen == SCREEN_CONTROLS:
+        # -- Draw controls screen. --
+        game_loop_controls()
     elif cur_screen == SCREEN_NONE:
         # -- Exit the game loop.
         return False
